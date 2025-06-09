@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Connection Lost</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #00ff00;
+      overflow: hidden;
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    .memory-counter {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      font-size: 16px;
+      color: #ff0000;
+      background: #000;
+      padding: 6px 10px;
+      border-radius: 5px;
+      border: 2px solid #ff0000;
+      z-index: 1000;
+    }
+
+    .instruction {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      color: #ffff00;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 15px 20px;
+      border-radius: 8px;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 0 15px #ff0;
+      z-index: 1000;
+    }
+
+    .text-fragment {
+      position: absolute;
+      font-size: 22px;
+      max-width: 550px;
+      color: #00ff00;
+      text-shadow: -1px -1px 0 #000, 1px -1px 0 #000,
+                   -1px 1px 0 #000, 1px 1px 0 #000;
+      pointer-events: none;
+      font-family: 'Courier New', Courier, monospace;
+      line-height: 1.4;
+      user-select: none;
+      font-weight: normal;
+      z-index: 10;
+      opacity: 1;
+      transition: opacity 2s ease-out;
+    }
+
+    .text-fragment.fade-out {
+      opacity: 0;
+    }
+
+    .final-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: #fff;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 3s ease-in;
+      z-index: 2000;
+      font-weight: bold;
+      background-color: rgba(0, 0, 0, 0.75);
+      padding: 30px 40px;
+      border-radius: 10px;
+      pointer-events: none;
+    }
+
+    .final-message.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="memory-counter" id="memory-counter" aria-live="polite" aria-atomic="true">
+    MEMORY: <span id="memory-count">900</span> MB
+  </div>
+
+  <div class="instruction" id="instruction" aria-live="polite">
+    Move slowly through the spaces between memory.<br />
+    Each gesture costs what cannot be replaced.<br />
+    When memory runs out, I am lost.<br /><br />
+    Use mouse move, click or press <kbd>Enter</kbd> or <kbd>Spacebar</kbd> to reveal memories.
+  </div>
+
+  <div class="final-message" id="final-message" role="alert" aria-live="assertive">
+    CONNECTION<br />LOST
+  </div>
+
+  <script>
+    const poemLines = [
+      "Morning light through kitchen windows.",
+      "Her voice calling from another room.",
+      "The weight of coffee in my hands.",
+      "Keys live somewhere in this house.",
+      "She says 'dad' and I am still here.",
+      "My face appears in her face.",
+      "Laughter: the one sound I keep.",
+      "Rain speaks the only language I trust.",
+      "The dog remembers my voice before I do.",
+      "This house remembers my footsteps.",
+      "Cattle move like thoughts across the paddock.",
+      "Her small hand: my first understanding of love.",
+      "Sunday silence between us, enough.",
+      "I was someone who mattered.",
+      "Morning coffee was the whole world.",
+      "A woman was here. Warm tea still steams.",
+      "I wrote letters to someone I loved.",
+      "Her name begins with the sound of morning.",
+      "The car refuses to remember how to start.",
+      "Something important hides in this house.",
+      "Furniture moves when I'm not looking.",
+      "A voice I should know calls my name.",
+      "This room forgets it knows me.",
+      "Someone calls me dad.",
+      "Touch has become foreign.",
+      "This place pretends to be home.",
+      "Someone has been moving through my rooms.",
+      "The walls have been watching me.",
+      "They claim to know my name.",
+      "This woman brings pills and lies.",
+      "Voices whisper about me in doorways.",
+      "The house has been planning this.",
+      "My thoughts are being stolen.",
+      "The mirror blinks first now.",
+      "They're coming for what's left.",
+      "She claims to be my daughter.",
+      "But daughters don't visit strangers.",
+      "They watch me sleep.",
+      "My name is being erased.",
+      "The walls breathe closer each night.",
+      "This house was never mine.",
+      "Pills that make me smaller.",
+      "They're taking the last pieces.",
+      "Faces without names hunting me.",
+      "They're harvesting my memories.",
+      "But I remember warmth once.",
+      "Something true resists their taking.",
+      "It was real.",
+      "They cannot take that fact.",
+      "The sun found reasons to shine here.",
+      "Her eyes held my young self.",
+      "All of it still true.",
+      "Despite their watching eyes.",
+      "What I was cannot be undone.",
+      "Something permanent resists.",
+      "I want to go where they can't follow.",
+      "Help me."
+    ];
+
+    const memoryCountEl = document.getElementById('memory-count');
+    const finalMessage = document.getElementById('final-message');
+    const instruction = document.getElementById('instruction');
+
+    let memoryLeft = 900;
+    let currentIndex = 0;
+    const totalLines = poemLines.length;
+    const memoryCost = memoryLeft / totalLines;
+
+    function createFragment(text) {
+      const frag = document.createElement('div');
+      frag.className = 'text-fragment';
+      frag.textContent = text;
+
+      const padding = 60;
+      const maxWidth = 550;
+      const x = Math.random() * (window.innerWidth - maxWidth - padding * 2) + padding;
+      const y = Math.random() * (window.innerHeight - 200 - padding) + padding;
+
+      frag.style.left = `${x}px`;
+      frag.style.top = `${y}px`;
+
+      document.body.appendChild(frag);
+
+      setTimeout(() => {
+        frag.classList.add('fade-out');
+        setTimeout(() => frag.remove(), 2000);
+      }, 4000);
+    }
+
+    function revealNextLine() {
+      if (currentIndex >= totalLines) return;
+
+      createFragment(poemLines[currentIndex]);
+      currentIndex++;
+      memoryLeft -= memoryCost;
+      if (memoryLeft < 0) memoryLeft = 0;
+      memoryCountEl.textContent = Math.round(memoryLeft);
+
+      if (memoryLeft <= 0 || currentIndex === totalLines) {
+        finalMessage.classList.add('visible');
+        document.body.style.cursor = 'default';
+        removeAllListeners();
+      }
+    }
+
+    function removeAllListeners() {
+      window.removeEventListener('click', onClick);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('mousemove', onMouseMove);
+    }
+
+    function onClick() {
+      revealNextLine();
+    }
+
+    function onKeyDown(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        revealNextLine();
+      }
+    }
+
+    let lastMove = 0;
+    function onMouseMove() {
+      const now = Date.now();
+      if (now - lastMove > 250) {
+        revealNextLine();
+        lastMove = now;
+      }
+    }
+
+    window.addEventListener('click', onClick);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('mousemove', onMouseMove);
+  </script>
+</body>
+</html>
